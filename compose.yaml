@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    image: redgate/flyway:11.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/marketplace
+      FLYWAY_USER: marketplace
+      FLYWAY_PASSWORD: marketplace_dev
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    volumes:
+      - ./migrations:/flyway/sql:ro
+    command: migrate
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: "host=db port=5432 dbname=marketplace user=marketplace password=marketplace_dev connect_timeout=5"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

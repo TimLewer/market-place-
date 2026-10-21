@@ -1,0 +1,352 @@
+openapi: 3.0.3
+info:
+  title: Product
+  version: 1.0.0
+servers:
+ - url: http://localhost:8080
+components:
+  schemas:
+   ProductCreate:
+      type: object
+      required:
+        - name
+        - price
+        - stock
+        - category
+        - status
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+        stock:
+          type: integer
+          minimum: 0
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+   ProductResponse:
+      type: object
+      required:
+       - id
+       - name
+       - price
+       - stock
+       - category
+       - status
+       - created_at
+       - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+        stock:
+          type: integer
+          minimum: 0
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+   ProductPage:
+      type: object
+      required:
+        - content
+        - totalElements
+        - page
+        - size
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductResponse'
+
+        totalElements:
+          type: integer
+          format: int64
+          minimum: 0
+
+        page:
+          type: integer
+          minimum: 0
+
+        size:
+          type: integer
+          minimum: 1
+   ProductUpdate:
+      type: object
+      required:
+        - name
+        - price
+        - stock
+        - category
+        - status
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+        stock:
+          type: integer
+          minimum: 0
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+   ErrorResponse:
+    type: object
+    required:
+      - error_code
+      - message
+    properties:
+      error_code:
+        type: string
+      message:
+        type: string
+      details:
+        type: object
+        additionalProperties: true
+  responses:
+    ValidationError:
+      description: Некорректное входные данных
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error_code: VALIDATION_ERROR
+            message: Ошибка валидации входных данных
+            details:
+              fields:
+                - field: price
+                  message: Значение должно быть не меньше 0.01
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error_code: INTERNAL_ERROR
+            message: Внутренняя ошибка сервера
+paths:
+  /products:
+    post:
+      tags:
+        - Product
+      operationId: createProduct
+      summary: Создать товар
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Товар создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+        - Product
+      operationId: getProducts
+      summary: Получить список товаров
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 20
+
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - INACTIVE
+              - ARCHIVED
+
+        - name: category
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+
+      responses:
+        '200':
+          description: Страница товаров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /products/{id}:
+    get:
+      tags:
+        - Product
+      operationId: getProductById
+      summary: Получить товар по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Товар найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Товар не найден по ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: PRODUCT_NOT_FOUND
+                message: Товар не найден по ID
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Product
+      operationId: updateProduct
+      summary: обновить товар
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Товар обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Товар не найден по ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: PRODUCT_NOT_FOUND
+                message: Товар не найден по ID
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Product
+      operationId: deleteProduct
+      summary: Арх. товар
+      description: Переводит товар в статус ARCHIVED
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Товар архивирован
+        '404':
+          description: Товар не наден по id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: PRODUCT_NOT_FOUND
+                message: Товар не найден по ID
+        '400':
+          $ref: '#/components/responses/ValidationError'
